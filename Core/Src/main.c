@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "stdlib.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -63,27 +64,24 @@ uint8_t RxData[8];
 
 uint32_t TxMailbox;
 int datacheck = 0;
-
+int sendDataFlag = 0;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-if (GPIO_Pin == GPIO_PIN_13)
-{
-	TxData[0] = 100;
-	TxData[1] = 10;
-	TxData[2] = 100;
-	TxData[3] = 100;
-	TxData[4] = 100;
-	TxData[5] = 100;
-	TxData[6] = 100;
-	TxData[7] = 100;
+    if (GPIO_Pin == GPIO_PIN_13)
+    {
+        sendDataFlag = !sendDataFlag;  // Đảo trạng thái gửi dữ liệu (Bật/Tắt)
+    }
 
-
-
-	HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+    if (sendDataFlag)
+    {
+        // Randomize dữ liệu
+        for (int i = 0; i < 8; i++)
+        {
+            TxData[i] = rand() % 256;  // Gửi giá trị ngẫu nhiên từ 0 đến 255
+        }
+    }
 }
-}
-
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData);
 	if(RxHeader.DLC == 8)
@@ -141,6 +139,11 @@ TxHeader.StdId = 0x446;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  if (sendDataFlag)
+	      {
+	        HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+	        HAL_Delay(100);  // Gửi mỗi 1 giây
+	      }
 	  if (datacheck)
 	  {
 		 //blink led
@@ -246,7 +249,7 @@ canfilterconfig.FilterBank = 10;
 canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
 canfilterconfig.FilterIdHigh = 0x103<<5;
 canfilterconfig.FilterIdLow = 0;
-canfilterconfig.FilterMaskIdHigh = 0x100<<5;
+canfilterconfig.FilterMaskIdHigh = 0x103<<5;
 canfilterconfig.FilterMaskIdLow = 0x0000;
 canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
 canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
